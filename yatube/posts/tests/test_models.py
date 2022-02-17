@@ -21,10 +21,9 @@ class PostModelTest(TestCase):
             text='Тестовый пост и не важно какой длины текст',
         )
 
-
     def test_models_have_correct_object_names(self):
-        """Проверяем, что у моделей корректно работает __str__."""
-        post_text = PostModelTest.post.text
-        group_title = PostModelTest.group.title
-        self.assertEqual(str(self.post), self.post.text[:15])
-        self.assertEqual(str(self.group), self.group.title)
+        """Проверяем, что у моделей
+           корректно работает __str__.
+        """
+        self.assertEqual(str(self.post), PostModelTest.post.text[:15])
+        self.assertEqual(str(self.group), PostModelTest.group.title)
