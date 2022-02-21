@@ -1,11 +1,7 @@
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..forms import PostForm
-from ..models import Group, Post
-
-User = get_user_model()
+from ..models import Group, Post, User
 
 
 class PostFormTests(TestCase):
@@ -26,8 +22,6 @@ class PostFormTests(TestCase):
             group=cls.group
         )
 
-        cls.form = PostForm()
-
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
@@ -35,21 +29,20 @@ class PostFormTests(TestCase):
 
     def test_create_post(self):
         """Валидная форма создает запись в Post."""
-        # Подсчитаем количество записей в Post
         posts_count = Post.objects.count()
 
         form_data = {
             'text': 'Тестовый пост из формы',
-            'author': PostFormTests.author.id,
             'group': PostFormTests.group.id
         }
-        # Отправляем POST-запрос
+
         response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True
         )
 
+        self.assertEqual(response.status_code, 200)
         self.assertRedirects(response, reverse(
             'posts:profile', kwargs={
                 'username': PostFormTests.author.username}))
@@ -66,14 +59,11 @@ class PostFormTests(TestCase):
 
     def test_edit_post(self):
         """Валидная форма изменяет запись в Post."""
-        # Подсчитаем количество записей в Post
-        # и убедимся, что пост был изменён, а не добавлен новый
         posts_count = Post.objects.count()
         new_text_for_post = 'Новое значение для редактируемого поста!'
 
         form_data = {
             'text': new_text_for_post,
-            # 'author': PostFormTests.author.id,
             'group': PostFormTests.group.pk
         }
 
