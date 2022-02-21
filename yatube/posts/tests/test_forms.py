@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -16,14 +18,14 @@ class PostFormTests(TestCase):
             description='Новая тестовая группа'
         )
 
+        post_text = 'Тест пост'
         cls.post = Post.objects.create(
-            text='Тест пост',
+            text=post_text,
             author=cls.author,
             group=cls.group
         )
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostFormTests.author)
 
@@ -31,8 +33,9 @@ class PostFormTests(TestCase):
         """Валидная форма создает запись в Post."""
         posts_count = Post.objects.count()
 
+        post_text = 'Тестовый пост из формы'
         form_data = {
-            'text': 'Тестовый пост из формы',
+            'text': post_text,
             'group': PostFormTests.group.id
         }
 
@@ -42,28 +45,32 @@ class PostFormTests(TestCase):
             follow=True
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertRedirects(response, reverse(
             'posts:profile', kwargs={
                 'username': PostFormTests.author.username}))
 
         self.assertEqual(Post.objects.count(), posts_count + 1)
 
-        self.assertTrue(
-            Post.objects.filter(
-                text='Тестовый пост из формы',
-                author=PostFormTests.author,
-                group=PostFormTests.group
-            ).exists()
-        )
+        last_post = Post.objects.order_by('-id')[:1].get()
+
+        self.assertEqual(
+            last_post.text,
+            post_text)
+        self.assertEqual(
+            last_post.group.slug,
+            PostFormTests.group.slug)
+        self.assertEqual(
+            last_post.author.username,
+            PostFormTests.author.username)
 
     def test_edit_post(self):
         """Валидная форма изменяет запись в Post."""
         posts_count = Post.objects.count()
-        new_text_for_post = 'Новое значение для редактируемого поста!'
+        post_text = 'Новое значение для редактируемого поста!'
 
         form_data = {
-            'text': new_text_for_post,
+            'text': post_text,
             'group': PostFormTests.group.pk
         }
 
@@ -80,10 +87,6 @@ class PostFormTests(TestCase):
 
         self.assertEqual(Post.objects.count(), posts_count)
 
-        self.assertTrue(
-            Post.objects.filter(
-                text=new_text_for_post,
-                author=PostFormTests.author,
-                group=PostFormTests.group
-            ).exists()
-        )
+        editable_post = Post.objects.get(pk=PostFormTests.post.pk)
+
+        self.assertEqual(editable_post.text, post_text)

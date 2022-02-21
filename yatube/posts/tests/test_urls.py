@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.test import Client, TestCase
 
 from ..models import Group, Post, User
@@ -25,8 +27,6 @@ class PostURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
-
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
@@ -51,37 +51,37 @@ class PostURLTests(TestCase):
             'index': {
                 'url': '/',
                 'template': 'posts/index.html',
-                'status': 200
+                'status': HTTPStatus.OK
             },
             'group_list': {
                 'url': f'/group/{self.group.slug}/',
                 'template': 'posts/group_list.html',
-                'status': 200
+                'status': HTTPStatus.OK
             },
             'profile': {
                 'url': f'/profile/{self.author.username}/',
                 'template': 'posts/profile.html',
-                'status': 200
+                'status': HTTPStatus.OK
             },
             'post_detail': {
                 'url': f'/posts/{self.post.id}/',
                 'template': 'posts/post_detail.html',
-                'status': 200
+                'status': HTTPStatus.OK
             },
             'post_edit': {
                 'url': f'/posts/{self.post.id}/edit/',
                 'template': 'posts/create_post.html',
-                'status': 200
+                'status': HTTPStatus.OK
             },
             'post_create': {
                 'url': '/create/',
                 'template': 'posts/create_post.html',
-                'status': 200
+                'status': HTTPStatus.OK
             },
             'unexisting_page': {
                 'url': '/unexisting_page/',
                 'template': None,
-                'status': 404
+                'status': HTTPStatus.NOT_FOUND
             }
         }
 
@@ -94,20 +94,20 @@ class PostURLTests(TestCase):
         for url in self.public_url_names:
             address = self.templates_pages_names[url]['url']
             status = self.templates_pages_names[url]['status']
-            response = self.guest_client.get(address)
+            response = self.client.get(address)
             self.assertEqual(response.status_code, status)
 
         for url in self.unexist_url_names:
             address = self.templates_pages_names[url]['url']
             status = self.templates_pages_names[url]['status']
-            response = self.guest_client.get(address)
+            response = self.client.get(address)
             self.assertEqual(response.status_code, status)
 
     def test_posts_edit_url_exists_for_author(self):
         """Страница /posts/<post_id>/edit/ доступна автору поста."""
         url = self.get_url_name('post_edit')
         response_auth_author = self.authorized_client_author.get(url)
-        self.assertEqual(response_auth_author.status_code, 200)
+        self.assertEqual(response_auth_author.status_code, HTTPStatus.OK)
 
     def test_posts_edit_redirect_for_non_author(self):
         """Страница /posts/<post_id>/edit/ отдаёт редирект
@@ -121,14 +121,14 @@ class PostURLTests(TestCase):
         """Страница /create/ доступна авторизованным пользователям."""
         url = self.get_url_name('post_create')
         response = self.authorized_client.get(url)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_create_page_redirect_for_quest_user(self):
         """Страница /create/ отдаёт редирект
            не авторизованному пользователю.
         """
         url = self.get_url_name('post_create')
-        response = self.guest_client.get(url, follow=True)
+        response = self.client.get(url, follow=True)
         self.assertRedirects(response, '/auth/login/?next=/create/')
 
     def test_public_urls_uses_correct_template(self):
@@ -136,7 +136,7 @@ class PostURLTests(TestCase):
         for url in self.public_url_names:
             address = self.templates_pages_names[url]['url']
             template = self.templates_pages_names[url]['template']
-            response = self.guest_client.get(address)
+            response = self.client.get(address)
             self.assertTemplateUsed(response, template)
 
     def test_private_urls_uses_correct_template(self):
